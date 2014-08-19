@@ -7,6 +7,10 @@ var start = new Date().getTime();
 var result = host.performTaskWithPathArgumentsTimeout("/bin/echo", ["Hello!"], 5);
 var stop = new Date().getTime();
 
+UIALogger.logDebug("start time: " + start);
+UIALogger.logDebug("end time: " + stop);
+UIALogger.logDebug("output: " + result.stdout);
+
 output = result.stdout.trim();
 wasFast = (stop - start) < 500;
 

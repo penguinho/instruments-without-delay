@@ -14,6 +14,7 @@
 // limitations under the License.
 //
 
+#import "../../Common/dyld-interposing.h"
 #import <Foundation/Foundation.h>
 #import <objc/runtime.h>
 #import <objc/message.h>
@@ -108,6 +109,7 @@ static void SwizzleSelectorForFunction(Class cls, SEL sel, IMP newImp)
 
 static id UIAHost_performTaskWithpath(id self, SEL cmd, id path, id arguments, id timeout)
 {
+  NSLog(@"Got command with path: %@ and arguments: %@", path, arguments);
   NSTask *task = [[[NSTask alloc] init] autorelease];
   [task setLaunchPath:path];
   [task setArguments:arguments];
@@ -132,12 +134,22 @@ static id UIAHost_performTaskWithpath(id self, SEL cmd, id path, id arguments, i
   return result;
 }
 
+static BOOL NSUserDefaults_boolForKey(id self, SEL _cmd, NSString *key) {
+  if ([key isEqualToString:@"Verbose"] || [key isEqualToString:@"Debug"] || [key isEqualToString:@"Bridge"]) {
+    return YES;
+  }
+
+  return [self __NSUserDefaults_boolForKey:key];
+}
+
 __attribute__((constructor)) static void EntryPoint()
 {
   // UIAHost is from UIAutomation.framework
   SwizzleSelectorForFunction(NSClassFromString(@"UIAHost"),
                              @selector(performTaskWithPath:arguments:timeout:),
                              (IMP)UIAHost_performTaskWithpath);
+
+  SwizzleSelectorForFunction(NSClassFromString(@"NSUserDefaults"), @selector(boolForKey:), (IMP)NSUserDefaults_boolForKey);
   
   // Don't cascade into any other programs started.
   unsetenv("DYLD_INSERT_LIBRARIES");
